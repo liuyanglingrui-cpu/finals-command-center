@@ -2,16 +2,17 @@
 
 /* 主题调色板 —— Tailwind v4 会据此生成 bg- / text- / border- 等工具类 */
 @theme {
-  --color-bg: #0f172a;
-  --color-card: #1e293b;
-  --color-card2: #111827;
-  --color-primary: #38bdf8;
-  --color-success: #22c55e;
-  --color-warning: #f97316;
+  --color-bg: #050a14;
+  --color-card: #111827;
+  --color-card2: #0b1220;
+  --color-primary: #6366f1;
+  --color-accent: #8b5cf6;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
   --color-danger: #ef4444;
-  --color-text: #e5e7eb;
-  --color-muted: #94a3b8;
-  --color-border: #243042;
+  --color-text: #f8fafc;
+  --color-muted: #8b9bb4;
+  --color-border: #1f2937;
 }
 
 html,
@@ -21,11 +22,7 @@ body {
 
 body {
   background-color: var(--color-bg);
-  background-image: radial-gradient(
-    1200px 600px at 100% -10%,
-    rgba(56, 189, 248, 0.06),
-    transparent 60%
-  );
+  background-image: linear-gradient(180deg, #050a14 0%, #070d19 45%, #050a14 100%);
   background-attachment: fixed;
   color: var(--color-text);
   font-family:
@@ -33,6 +30,11 @@ body {
     "Hiragino Sans GB", sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* 细滚动条 */

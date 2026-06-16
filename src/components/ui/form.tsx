@@ -2,7 +2,7 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/cn';
 
 const base =
-  'w-full rounded-lg border border-border bg-card2 px-3 py-2 text-sm text-text placeholder:text-muted/50 outline-none transition focus:border-primary/60 focus:ring-1 focus:ring-primary/40';
+  'w-full rounded-lg border border-white/10 bg-card2/85 px-3 py-2 text-sm text-text placeholder:text-muted/50 outline-none transition focus:border-primary/70 focus:ring-1 focus:ring-primary/45';
 
 export function Field({
   label,

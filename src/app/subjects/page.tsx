@@ -26,7 +26,7 @@ export default function SubjectsPage() {
   return (
     <div>
       <PageHeader
-        title="Subjects"
+        title="我的科目"
         subtitle="管理考试科目与章节"
         action={
           <Button onClick={() => setModal('new')}>

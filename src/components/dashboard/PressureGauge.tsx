@@ -15,7 +15,7 @@ export function PressureGauge({ pressure }: { pressure: Pressure }) {
   const fill = Math.min(1, pressure.available > 0 ? pressure.ratio : pressure.remaining > 0 ? 1 : 0);
 
   return (
-    <div className="rounded-xl border border-border bg-card/70 p-4">
+    <div className="rounded-lg border border-white/5 bg-card/90 p-4 shadow-sm shadow-black/25">
       <div className="flex items-end justify-between">
         <div>
           <div className="text-xs text-muted">压力指数</div>

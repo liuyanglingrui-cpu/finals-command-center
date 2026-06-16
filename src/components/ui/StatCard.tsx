@@ -15,7 +15,7 @@ export function StatCard({
   icon?: LucideIcon;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card/70 p-4">
+    <div className="rounded-lg border border-white/5 bg-card/90 p-4">
       <div className="flex items-center justify-between">
         <span className="text-xs text-muted">{label}</span>
         {Icon ? <Icon size={16} className="text-muted" /> : null}

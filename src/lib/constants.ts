@@ -2,7 +2,7 @@
 import type { Level, ChapterStatus, ChapterKind } from './types';
 
 export const STORAGE_KEY = 'fcc:data:v1';
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 export const DEFAULT_DAILY_HOURS = 5;
 
 export const LEVELS: Level[] = ['low', 'mid', 'high'];

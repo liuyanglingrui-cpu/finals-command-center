@@ -45,7 +45,7 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <PageHeader title="Settings" subtitle="复习时间与数据管理" />
+      <PageHeader title="设置" subtitle="复习时间与数据管理" />
 
       <div className="space-y-5">
         <Card>

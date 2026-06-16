@@ -69,10 +69,32 @@ export interface ReviewLog {
   adjustment: string;
 }
 
+/** 周几：1=周一 ... 7=周日 */
+export type CourseWeekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export interface CourseMeeting {
+  id: string;
+  weekday: CourseWeekday;
+  startSection: number;
+  endSection: number;
+}
+
+export interface Course {
+  id: string;
+  name: string;
+  term: string;
+  meetings: CourseMeeting[];
+  keyTopics: string[];
+  hidden: boolean;
+  excludedFromReview: boolean;
+  notes: string;
+}
+
 export interface AppState {
   version: number;
   subjects: Subject[];
   chapters: Chapter[];
+  courses: Course[];
   availability: DailyAvailability[];
   /** 默认每日可用时间（小时），默认为 5 */
   defaultDailyHours: number;

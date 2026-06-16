@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { BookOpen, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Countdown } from '../ui/Countdown';
 import { ProgressBar } from '../ui/ProgressBar';
@@ -19,15 +19,21 @@ export function SubjectCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  const progressPct = Math.round(progress.pct * 100);
   return (
-    <Card className="flex flex-col gap-3">
+    <Card className="flex flex-col gap-3 bg-card/90">
       <div className="flex items-start justify-between gap-2">
-        <Link href={`/subjects/${subject.id}`} className="min-w-0 flex-1">
-          <h3 className="truncate font-semibold text-text hover:text-primary">{subject.name}</h3>
-          <div className="mt-1 text-xs text-muted">
-            {formatCN(subject.examDate)} {subject.examTime} 考试
+        <div className="flex min-w-0 flex-1 gap-3">
+          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary/20 text-primary">
+            <BookOpen size={23} />
           </div>
-        </Link>
+          <Link href={`/subjects/${subject.id}`} className="min-w-0 flex-1">
+            <h3 className="truncate font-semibold text-text hover:text-primary">{subject.name}</h3>
+            <div className="mt-1 text-xs text-muted">
+              {formatCN(subject.examDate)} {subject.examTime} 考试
+            </div>
+          </Link>
+        </div>
         <div className="flex shrink-0 gap-1">
           <button
             onClick={onEdit}
@@ -57,9 +63,9 @@ export function SubjectCard({
           <span>
             {progress.doneChapters}/{progress.totalChapters} 章 · 剩 {formatHours(progress.remainingHours)}
           </span>
-          <span>{Math.round(progress.pct * 100)}%</span>
+          <span>{progressPct}%</span>
         </div>
-        <ProgressBar value={progress.pct} color="bg-success" />
+        <ProgressBar value={progress.pct} color="bg-gradient-to-r from-primary to-accent" />
       </div>
 
       <Link

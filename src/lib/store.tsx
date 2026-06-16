@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { AppState, Chapter, ReviewLog, Subject } from './types';
+import type { AppState, Chapter, Course, ReviewLog, Subject } from './types';
 import { buildSeedState, emptyState } from './seed';
 import { generateSchedule } from './schedule';
 import { clearState, loadState, saveState } from './storage';
@@ -16,6 +16,7 @@ function withSchedule(s: AppState): AppState {
 type NewSubject = Omit<Subject, 'id'>;
 type NewChapter = Omit<Chapter, 'id' | 'completedHours'>;
 type NewReview = Omit<ReviewLog, 'id'>;
+type NewCourse = Omit<Course, 'id'>;
 
 /** 智能导入的一项：合并到已有科目（mergeIntoId）或新建科目（subject），并追加章节 */
 type ImportChapter = Omit<Chapter, 'id' | 'completedHours' | 'subjectId'>;
@@ -47,6 +48,11 @@ interface StoreValue {
   upsertReview: (data: NewReview) => void;
 
   importSubjects: (items: ImportItem[]) => void;
+  addCourse: (data: NewCourse) => string;
+  updateCourse: (id: string, patch: Partial<NewCourse>) => void;
+  deleteCourse: (id: string) => void;
+  importCourses: (courses: NewCourse[]) => void;
+  toggleCourseHidden: (id: string) => void;
 
   resetToSample: () => void;
   clearAll: () => void;
@@ -200,6 +206,44 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const addCourse = useCallback((data: NewCourse) => {
+    const id = uid('course');
+    setState((prev) => ({ ...prev, courses: [...prev.courses, { ...data, id }] }));
+    return id;
+  }, []);
+
+  const updateCourse = useCallback((id: string, patch: Partial<NewCourse>) => {
+    setState((prev) => ({
+      ...prev,
+      courses: prev.courses.map((c) => (c.id === id ? { ...c, ...patch } : c)),
+    }));
+  }, []);
+
+  const deleteCourse = useCallback((id: string) => {
+    setState((prev) => ({ ...prev, courses: prev.courses.filter((c) => c.id !== id) }));
+  }, []);
+
+  const importCourses = useCallback((courses: NewCourse[]) => {
+    setState((prev) => ({
+      ...prev,
+      courses: [
+        ...prev.courses,
+        ...courses.map((course) => ({
+          ...course,
+          id: uid('course'),
+          meetings: course.meetings.map((m) => ({ ...m, id: m.id || uid('meet') })),
+        })),
+      ],
+    }));
+  }, []);
+
+  const toggleCourseHidden = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      courses: prev.courses.map((c) => (c.id === id ? { ...c, hidden: !c.hidden } : c)),
+    }));
+  }, []);
+
   const resetToSample = useCallback(() => setState(buildSeedState()), []);
   const clearAll = useCallback(() => {
     clearState();
@@ -223,6 +267,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       toggleTask,
       upsertReview,
       importSubjects,
+      addCourse,
+      updateCourse,
+      deleteCourse,
+      importCourses,
+      toggleCourseHidden,
       resetToSample,
       clearAll,
     }),
@@ -242,6 +291,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       toggleTask,
       upsertReview,
       importSubjects,
+      addCourse,
+      updateCourse,
+      deleteCourse,
+      importCourses,
+      toggleCourseHidden,
       resetToSample,
       clearAll,
     ],

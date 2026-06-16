@@ -22,7 +22,7 @@ export default function ReviewPage() {
 
   return (
     <div>
-      <PageHeader title="Review" subtitle={`今日复盘 · ${formatFull(today)}`} />
+      <PageHeader title="今日复盘" subtitle={formatFull(today)} />
 
       <Card className="mb-6">
         <ReviewForm

@@ -1,14 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { CalendarClock, ChevronRight, Plus } from 'lucide-react';
+import { BarChart3, CalendarClock, ChevronRight, NotebookPen, Plus } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { computePressure } from '@/lib/pressure';
 import { futureSubjects, nextExam, overallProgress, subjectProgress } from '@/lib/selectors';
-import { daysUntil, formatCN, formatFull, formatHours, todayStr } from '@/lib/date';
+import { daysUntil, formatFull, formatHours, todayStr } from '@/lib/date';
 import { Loading } from '@/components/ui/Loading';
 import { PageHeader } from '@/components/ui/PageHeader';
-import { StatCard } from '@/components/ui/StatCard';
 import { Card } from '@/components/ui/Card';
 import { ProgressBar } from '@/components/ui/ProgressBar';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -28,7 +27,7 @@ export default function DashboardPage() {
   if (state.subjects.length === 0) {
     return (
       <div>
-        <PageHeader title="Dashboard" subtitle={formatFull(today)} />
+        <PageHeader title="今日" subtitle={formatFull(today)} />
         <EmptyState
           title="还没有任何科目"
           hint="先添加考试科目和章节，系统会自动为你生成复习计划"
@@ -49,34 +48,52 @@ export default function DashboardPage() {
   const overall = overallProgress(state);
   const todayTasks = state.tasks.filter((t) => t.date === today);
   const todayDone = todayTasks.filter((t) => t.completed).length;
+  const todayHours = todayTasks.reduce((sum, task) => sum + task.hours, 0);
   const fs = futureSubjects(state);
 
   return (
     <div>
-      <PageHeader title="Dashboard" subtitle={formatFull(today)} />
+      <PageHeader
+        title="早上好，学霸同学"
+        subtitle={`今天是 ${formatFull(today)}`}
+        action={
+          <Link href="/review">
+            <Button variant="secondary" size="sm">
+              <NotebookPen size={14} /> 复盘
+            </Button>
+          </Link>
+        }
+      />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        <StatCard
-          label="最近一场考试"
-          value={exam ? exam.name : '—'}
-          accent="text-primary"
-          icon={CalendarClock}
-          sub={
-            exam
-              ? `${formatCN(exam.examDate)} ${exam.examTime} · 还剩 ${Math.max(0, daysUntil(exam.examDate))} 天`
-              : '暂无未来考试'
-          }
-        />
-        <StatCard
-          label="总复习进度"
-          value={`${Math.round(overall.pct * 100)}%`}
-          accent="text-success"
-          sub={`${overall.doneChapters}/${overall.totalChapters} 章 · 已学 ${formatHours(overall.completedHours)} / ${formatHours(overall.totalHours)}`}
-        />
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="min-h-[104px] overflow-hidden bg-card/90">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted">最近考试</span>
+            <CalendarClock size={15} className="text-success" />
+          </div>
+          <div className="mt-3 text-3xl font-bold text-text">{exam ? Math.max(0, daysUntil(exam.examDate)) : '—'}</div>
+          <div className="mt-1 truncate text-xs text-muted">{exam ? `${exam.name} · 天` : '暂无未来考试'}</div>
+        </Card>
+        <Card className="min-h-[104px] bg-card/90">
+          <div className="text-xs text-muted">今日任务</div>
+          <div className="mt-3 text-3xl font-bold text-text">
+            {formatHours(todayHours).replace('h', '')}
+            <span className="ml-1 text-sm font-medium text-muted">小时</span>
+          </div>
+          <div className="mt-1 text-xs text-muted">计划学习</div>
+        </Card>
+        <Card className="min-h-[104px] bg-card/90">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-muted">完成进度</span>
+            <BarChart3 size={15} className="text-primary" />
+          </div>
+          <div className="mt-3 text-3xl font-bold text-text">{Math.round(overall.pct * 100)}%</div>
+          <ProgressBar value={overall.pct} color="bg-success" className="mt-2" />
+        </Card>
         <PressureGauge pressure={pressure} />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div className="mt-6 space-y-4">
         {/* 今日任务 */}
         <Card>
           <div className="mb-3 flex items-center justify-between">
@@ -101,6 +118,9 @@ export default function DashboardPage() {
                 ))}
             </div>
           )}
+          <Link href="/schedule" className="mt-4 block">
+            <Button className="w-full">开始学习</Button>
+          </Link>
         </Card>
 
         {/* 各科完成度 */}

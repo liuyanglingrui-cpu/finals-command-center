@@ -26,7 +26,7 @@ export function DayGroup({
   const sorted = [...tasks].sort((a, b) => Number(a.completed) - Number(b.completed));
 
   return (
-    <div className="rounded-xl border border-border bg-card/60 p-4">
+    <div className="rounded-lg border border-white/5 bg-card/90 p-4 shadow-sm shadow-black/25">
       <div className="mb-2 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="text-sm font-semibold text-text">{formatCN(date)}</span>
@@ -42,7 +42,7 @@ export function DayGroup({
 
       <ProgressBar
         value={capacity > 0 ? planned / capacity : planned > 0 ? 1 : 0}
-        color={over ? 'bg-danger' : 'bg-primary'}
+        color={over ? 'bg-danger' : 'bg-gradient-to-r from-primary to-accent'}
         className="mb-3"
       />
 
