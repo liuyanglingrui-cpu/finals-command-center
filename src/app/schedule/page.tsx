@@ -99,6 +99,8 @@ export default function SchedulePage() {
       {tab === 'courses' ? (
         <CourseSchedulePanel
           courses={state.courses}
+          termStartDate={state.courseTermStartDate}
+          weekCount={state.courseWeekCount}
           onToggleHidden={toggleCourseHidden}
           onDelete={(id) => {
             const course = state.courses.find((item) => item.id === id);

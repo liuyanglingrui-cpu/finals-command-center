@@ -41,6 +41,8 @@ interface StoreValue {
   setAvailability: (date: string, hours: number) => void;
   clearAvailability: (date: string) => void;
   setDefaultHours: (hours: number) => void;
+  setUserName: (name: string) => void;
+  setCourseCalendar: (startDate: string, weekCount: number) => void;
 
   regenerate: () => void;
   toggleTask: (taskId: string) => void;
@@ -150,6 +152,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setState((prev) => withSchedule({ ...prev, defaultDailyHours: hours }));
   }, []);
 
+  const setUserName = useCallback((name: string) => {
+    setState((prev) => ({ ...prev, userName: name.trim() }));
+  }, []);
+
+  const setCourseCalendar = useCallback((startDate: string, weekCount: number) => {
+    setState((prev) => ({
+      ...prev,
+      courseTermStartDate: startDate || prev.courseTermStartDate,
+      courseWeekCount: Math.max(1, Math.floor(weekCount || prev.courseWeekCount)),
+    }));
+  }, []);
+
   const regenerate = useCallback(() => {
     setState((prev) => withSchedule(prev));
   }, []);
@@ -231,7 +245,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         ...courses.map((course) => ({
           ...course,
           id: uid('course'),
-          meetings: course.meetings.map((m) => ({ ...m, id: m.id || uid('meet') })),
+          meetings: course.meetings.map((m) => ({ ...m, id: m.id || uid('meet'), weeks: [...m.weeks] })),
         })),
       ],
     }));
@@ -263,6 +277,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setAvailability,
       clearAvailability,
       setDefaultHours,
+      setUserName,
+      setCourseCalendar,
       regenerate,
       toggleTask,
       upsertReview,
@@ -287,6 +303,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setAvailability,
       clearAvailability,
       setDefaultHours,
+      setUserName,
+      setCourseCalendar,
       regenerate,
       toggleTask,
       upsertReview,

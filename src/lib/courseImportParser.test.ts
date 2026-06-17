@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findCourseConflicts, parseCourseImportText } from './courseImportParser';
+import { allCourseWeeks } from './courseWeeks';
 
 const SAMPLE = `微积分（2）2026春
 周一 1-2节
@@ -38,6 +39,7 @@ const SAMPLE = `微积分（2）2026春
 describe('parseCourseImportText', () => {
   it('解析多门课程、学期、多个星期节次和重点章节', () => {
     const courses = parseCourseImportText(SAMPLE);
+    const weeks = allCourseWeeks();
 
     expect(courses).toHaveLength(6);
     expect(courses[0]).toMatchObject({
@@ -48,11 +50,11 @@ describe('parseCourseImportText', () => {
       excludedFromReview: false,
     });
     expect(courses[0].meetings).toEqual([
-      { weekday: 1, startSection: 1, endSection: 2 },
-      { weekday: 2, startSection: 3, endSection: 4 },
-      { weekday: 3, startSection: 1, endSection: 2 },
-      { weekday: 4, startSection: 1, endSection: 2 },
-      { weekday: 5, startSection: 3, endSection: 4 },
+      { weekday: 1, startSection: 1, endSection: 2, weeks },
+      { weekday: 2, startSection: 3, endSection: 4, weeks },
+      { weekday: 3, startSection: 1, endSection: 2, weeks },
+      { weekday: 4, startSection: 1, endSection: 2, weeks },
+      { weekday: 5, startSection: 3, endSection: 4, weeks },
     ]);
   });
 
@@ -62,7 +64,29 @@ describe('parseCourseImportText', () => {
 
     expect(course.name).toBe('体育');
     expect(course.keyTopics).toEqual([]);
-    expect(course.meetings).toEqual([{ weekday: 1, startSection: 7, endSection: 8 }]);
+    expect(course.meetings).toEqual([{ weekday: 1, startSection: 7, endSection: 8, weeks: allCourseWeeks() }]);
+  });
+
+  it('解析课程级周次、节次级周次、离散周次和单双周', () => {
+    const courses = parseCourseImportText(`第15周
+微积分
+周一 1-2节
+
+线性代数 第14-18周
+周二 3-4节
+
+大学物理
+周三 5-6节 第1、3、5周
+
+有机化学 第1-16周单周
+周四 1-2节
+第2-16周双周 周五 3-4节`);
+
+    expect(courses[0].meetings[0].weeks).toEqual([15]);
+    expect(courses[1].meetings[0].weeks).toEqual([14, 15, 16, 17, 18]);
+    expect(courses[2].meetings[0].weeks).toEqual([1, 3, 5]);
+    expect(courses[3].meetings[0].weeks).toEqual([1, 3, 5, 7, 9, 11, 13, 15]);
+    expect(courses[3].meetings[1].weeks).toEqual([2, 4, 6, 8, 10, 12, 14, 16]);
   });
 
   it('识别不纳入复习系统和可选隐藏课程', () => {
@@ -83,6 +107,7 @@ describe('findCourseConflicts', () => {
     const conflicts = findCourseConflicts(courses);
 
     expect(conflicts).toContainEqual({
+      weeks: allCourseWeeks(),
       weekday: 2,
       startSection: 1,
       endSection: 2,
@@ -94,5 +119,35 @@ describe('findCourseConflicts', () => {
       ]),
     );
   });
-});
 
+  it('只在同一周次内检测冲突', () => {
+    const courses = parseCourseImportText(`A 第1周
+周一 1-2节
+
+B 第2周
+周一 1-2节
+
+C 第2周
+周一 2-3节`);
+
+    expect(findCourseConflicts(courses, 1)).toEqual([]);
+    expect(findCourseConflicts(courses, 2)).toEqual([
+      {
+        weeks: [2],
+        weekday: 1,
+        startSection: 2,
+        endSection: 2,
+        courseNames: ['B', 'C'],
+      },
+    ]);
+    expect(findCourseConflicts(courses)).toEqual([
+      {
+        weeks: [2],
+        weekday: 1,
+        startSection: 2,
+        endSection: 2,
+        courseNames: ['B', 'C'],
+      },
+    ]);
+  });
+});

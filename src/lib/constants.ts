@@ -2,8 +2,11 @@
 import type { Level, ChapterStatus, ChapterKind } from './types';
 
 export const STORAGE_KEY = 'fcc:data:v1';
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
 export const DEFAULT_DAILY_HOURS = 5;
+export const DEFAULT_USER_NAME = '学霸同学';
+export const DEFAULT_COURSE_TERM_START_DATE = '2026-03-09';
+export const DEFAULT_COURSE_WEEK_COUNT = 20;
 
 export const LEVELS: Level[] = ['low', 'mid', 'high'];
 export const LEVEL_LABEL: Record<Level, string> = { low: '低', mid: '中', high: '高' };

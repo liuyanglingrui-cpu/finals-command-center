@@ -77,6 +77,7 @@ export interface CourseMeeting {
   weekday: CourseWeekday;
   startSection: number;
   endSection: number;
+  weeks: number[];
 }
 
 export interface Course {
@@ -92,10 +93,13 @@ export interface Course {
 
 export interface AppState {
   version: number;
+  userName: string;
   subjects: Subject[];
   chapters: Chapter[];
   courses: Course[];
   availability: DailyAvailability[];
+  courseTermStartDate: string;
+  courseWeekCount: number;
   /** 默认每日可用时间（小时），默认为 5 */
   defaultDailyHours: number;
   tasks: ScheduleTask[];

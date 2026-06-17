@@ -1,8 +1,11 @@
 'use client';
 
+import { useMemo, useState } from 'react';
 import { Eye, EyeOff, Trash2, TriangleAlert } from 'lucide-react';
 import type { Course, CourseMeeting, CourseWeekday } from '@/lib/types';
 import { COURSE_WEEKDAY_LABEL, findCourseConflicts } from '@/lib/courseImportParser';
+import { clampCourseWeek, courseWeekDates, currentCourseWeek, formatCourseWeeks } from '@/lib/courseWeeks';
+import { formatCN } from '@/lib/date';
 import { cn } from '@/lib/cn';
 import { Card } from '../ui/Card';
 
@@ -14,40 +17,51 @@ const COURSE_COLORS = [
   'border-cyan-400/40 bg-cyan-400/20 text-cyan-200',
 ];
 
-function meetingText(meetings: CourseMeeting[]): string {
+const WEEKDAYS: CourseWeekday[] = [1, 2, 3, 4, 5, 6, 7];
+
+function meetingText(meetings: CourseMeeting[], weekCount: number): string {
   if (meetings.length === 0) return '暂无节次';
   return meetings
-    .map((m) => `${COURSE_WEEKDAY_LABEL[m.weekday]} ${m.startSection}-${m.endSection}节`)
+    .map(
+      (m) =>
+        `${formatCourseWeeks(m.weeks, weekCount)} · ${COURSE_WEEKDAY_LABEL[m.weekday]} ${m.startSection}-${m.endSection}节`,
+    )
     .join(' · ');
 }
 
-function visibleWeekdays(courses: Course[]): CourseWeekday[] {
-  const set = new Set<CourseWeekday>();
-  for (const course of courses) {
-    if (course.hidden) continue;
-    for (const meeting of course.meetings) set.add(meeting.weekday);
-  }
-  const days = ([1, 2, 3, 4, 5] as CourseWeekday[]).filter((day) => set.has(day));
-  const weekend = ([6, 7] as CourseWeekday[]).filter((day) => set.has(day));
-  return [...(days.length ? days : ([1, 2, 3, 4, 5] as CourseWeekday[])), ...weekend];
+function activeMeetings(course: Course, week: number): CourseMeeting[] {
+  return course.meetings.filter((meeting) => meeting.weeks.includes(week));
 }
 
 export function CourseSchedulePanel({
   courses,
+  termStartDate,
+  weekCount,
   onToggleHidden,
   onDelete,
 }: {
   courses: Course[];
+  termStartDate: string;
+  weekCount: number;
   onToggleHidden: (id: string) => void;
   onDelete: (id: string) => void;
 }) {
+  const [selectedWeek, setSelectedWeek] = useState(() => currentCourseWeek(termStartDate, undefined, weekCount));
+  const activeWeek = clampCourseWeek(selectedWeek, weekCount);
+  const weekDates = useMemo(() => courseWeekDates(termStartDate, activeWeek), [activeWeek, termStartDate]);
+  const weekOptions = useMemo(
+    () => Array.from({ length: Math.max(1, weekCount) }, (_, idx) => idx + 1),
+    [weekCount],
+  );
   const visibleCourses = courses.filter((course) => !course.hidden);
-  const weekdays = visibleWeekdays(courses);
+  const weekCourses = visibleCourses
+    .map((course) => ({ course, meetings: activeMeetings(course, activeWeek) }))
+    .filter((item) => item.meetings.length > 0);
   const maxSection = Math.max(
     10,
-    ...visibleCourses.flatMap((course) => course.meetings.map((meeting) => meeting.endSection)),
+    ...weekCourses.flatMap((item) => item.meetings.map((meeting) => meeting.endSection)),
   );
-  const conflicts = findCourseConflicts(courses);
+  const conflicts = findCourseConflicts(courses, activeWeek);
   const conflictKeys = new Set(
     conflicts.flatMap((conflict) =>
       conflict.courseNames.map(
@@ -71,7 +85,8 @@ export function CourseSchedulePanel({
         <div className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
           <TriangleAlert size={14} className="mt-0.5 shrink-0" />
           <span>
-            有 {conflicts.length} 处课程冲突，最近一处：{COURSE_WEEKDAY_LABEL[conflicts[0].weekday]}{' '}
+            第{activeWeek}周有 {conflicts.length} 处课程冲突，最近一处：
+            {COURSE_WEEKDAY_LABEL[conflicts[0].weekday]}{' '}
             {conflicts[0].startSection}-{conflicts[0].endSection}节，{conflicts[0].courseNames.join(' / ')}。
           </span>
         </div>
@@ -79,28 +94,56 @@ export function CourseSchedulePanel({
 
       <Card className="overflow-hidden p-0">
         <div className="border-b border-border px-4 py-3">
-          <h2 className="text-sm font-semibold text-text">周视图</h2>
-          <p className="mt-0.5 text-xs text-muted">隐藏课程不会出现在周视图中。</p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-semibold text-text">周视图</h2>
+              <p className="mt-0.5 text-xs text-muted">
+                第{activeWeek}周 · {formatCN(weekDates[0])} - {formatCN(weekDates[6])}
+              </p>
+            </div>
+            <span className="shrink-0 rounded-full border border-primary/30 bg-primary/10 px-2 py-1 text-[11px] text-primary">
+              {weekCourses.length} 门课
+            </span>
+          </div>
+          <div className="-mx-1 mt-3 overflow-x-auto pb-1">
+            <div className="flex min-w-max gap-2 px-1">
+              {weekOptions.map((week) => (
+                <button
+                  key={week}
+                  onClick={() => setSelectedWeek(week)}
+                  className={cn(
+                    'h-8 rounded-lg px-3 text-xs font-medium transition-colors',
+                    week === activeWeek
+                      ? 'bg-primary text-white shadow-lg shadow-primary/25'
+                      : 'border border-white/10 bg-card2/70 text-muted hover:text-text',
+                  )}
+                >
+                  第{week}周
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
         <div className="overflow-x-auto p-3">
           <div
-            className="grid min-w-[560px] rounded-lg border border-border bg-card2/45"
+            className="grid min-w-[704px] rounded-lg border border-border bg-card2/45"
             style={{
-              gridTemplateColumns: `44px repeat(${weekdays.length}, minmax(88px, 1fr))`,
+              gridTemplateColumns: `44px repeat(${WEEKDAYS.length}, minmax(88px, 1fr))`,
               gridTemplateRows: `32px repeat(${maxSection}, 46px)`,
             }}
           >
             <div className="border-b border-r border-border/70" />
-            {weekdays.map((weekday, idx) => (
+            {WEEKDAYS.map((weekday, idx) => (
               <div
                 key={weekday}
                 className={cn(
-                  'flex items-center justify-center border-b border-border/70 text-xs font-medium text-muted',
-                  idx < weekdays.length - 1 ? 'border-r' : '',
+                  'flex flex-col items-center justify-center border-b border-border/70 text-xs font-medium leading-tight text-muted',
+                  idx < WEEKDAYS.length - 1 ? 'border-r' : '',
                 )}
                 style={{ gridColumn: idx + 2, gridRow: 1 }}
               >
-                {COURSE_WEEKDAY_LABEL[weekday].replace('周', '')}
+                <span>{COURSE_WEEKDAY_LABEL[weekday].replace('周', '')}</span>
+                <span className="text-[10px] font-normal text-muted/70">{formatCN(weekDates[idx]).replace('月', '/').replace('日', '')}</span>
               </div>
             ))}
             {Array.from({ length: maxSection }, (_, idx) => idx + 1).map((section) => (
@@ -113,22 +156,21 @@ export function CourseSchedulePanel({
               </div>
             ))}
             {Array.from({ length: maxSection }, (_, sectionIdx) =>
-              weekdays.map((weekday, dayIdx) => (
+              WEEKDAYS.map((weekday, dayIdx) => (
                 <div
                   key={`${weekday}-${sectionIdx}`}
                   className={cn(
                     'border-t border-border/40',
-                    dayIdx < weekdays.length - 1 ? 'border-r border-border/40' : '',
+                    dayIdx < WEEKDAYS.length - 1 ? 'border-r border-border/40' : '',
                   )}
                   style={{ gridColumn: dayIdx + 2, gridRow: sectionIdx + 2 }}
                 />
               )),
             )}
-            {visibleCourses.flatMap((course, courseIdx) =>
-              course.meetings
-                .filter((meeting) => weekdays.includes(meeting.weekday))
+            {weekCourses.flatMap(({ course, meetings }, courseIdx) =>
+              meetings
                 .map((meeting) => {
-                  const dayIdx = weekdays.indexOf(meeting.weekday);
+                  const dayIdx = WEEKDAYS.indexOf(meeting.weekday);
                   const overlap = conflicts.some(
                     (conflict) =>
                       conflict.weekday === meeting.weekday &&
@@ -163,6 +205,11 @@ export function CourseSchedulePanel({
                 }),
             )}
           </div>
+          {weekCourses.length === 0 ? (
+            <p className="mt-3 rounded-lg border border-border bg-card2/45 px-3 py-4 text-center text-sm text-muted">
+              第{activeWeek}周暂无显示课程。
+            </p>
+          ) : null}
         </div>
       </Card>
 
@@ -174,7 +221,7 @@ export function CourseSchedulePanel({
               <div className="min-w-0">
                 <h3 className="truncate font-semibold text-text">{course.name}</h3>
                 <p className="mt-1 text-xs text-muted">
-                  {course.term || '未设置学期'} · {meetingText(course.meetings)}
+                  {course.term || '未设置学期'} · {meetingText(course.meetings, weekCount)}
                 </p>
               </div>
               <div className="flex shrink-0 gap-1">

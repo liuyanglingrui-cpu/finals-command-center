@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { BarChart3, CalendarClock, ChevronRight, NotebookPen, Plus } from 'lucide-react';
 import { useStore } from '@/lib/store';
+import { DEFAULT_USER_NAME } from '@/lib/constants';
 import { computePressure } from '@/lib/pressure';
 import { futureSubjects, nextExam, overallProgress, subjectProgress } from '@/lib/selectors';
 import { daysUntil, formatFull, formatHours, todayStr } from '@/lib/date';
@@ -23,11 +24,12 @@ export default function DashboardPage() {
   if (!hydrated) return <Loading />;
 
   const getName = (id: string) => state.subjects.find((s) => s.id === id)?.name ?? '';
+  const displayName = state.userName.trim() || DEFAULT_USER_NAME;
 
   if (state.subjects.length === 0) {
     return (
       <div>
-        <PageHeader title="今日" subtitle={formatFull(today)} />
+        <PageHeader title={`早上好，${displayName}`} subtitle={formatFull(today)} />
         <EmptyState
           title="还没有任何科目"
           hint="先添加考试科目和章节，系统会自动为你生成复习计划"
@@ -54,7 +56,7 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title="早上好，学霸同学"
+        title={`早上好，${displayName}`}
         subtitle={`今天是 ${formatFull(today)}`}
         action={
           <Link href="/review">

@@ -1,6 +1,13 @@
 // 示例数据 —— 首次打开自动注入，考期相对「今天」生成，任何时候打开都能看到合理计划
 import type { AppState, Chapter, ChapterKind, Course, DailyAvailability, Level, Subject } from './types';
-import { DEFAULT_DAILY_HOURS, STATE_VERSION } from './constants';
+import {
+  DEFAULT_COURSE_TERM_START_DATE,
+  DEFAULT_COURSE_WEEK_COUNT,
+  DEFAULT_DAILY_HOURS,
+  DEFAULT_USER_NAME,
+  STATE_VERSION,
+} from './constants';
+import { allCourseWeeks } from './courseWeeks';
 import { addDays, todayStr } from './date';
 import { generateSchedule } from './schedule';
 import { uid } from './id';
@@ -61,15 +68,23 @@ export function buildSeedState(): AppState {
     { date: addDays(today, 3), availableHours: 8 },
   ];
 
+  const meet = (weekday: Course['meetings'][number]['weekday'], startSection: number, endSection: number) => ({
+    id: uid('meet'),
+    weekday,
+    startSection,
+    endSection,
+    weeks: allCourseWeeks(DEFAULT_COURSE_WEEK_COUNT),
+  });
+
   const courses: Course[] = [
     {
       id: uid('course'),
       name: '微积分（2）',
       term: '2026春',
       meetings: [
-        { id: uid('meet'), weekday: 1, startSection: 1, endSection: 2 },
-        { id: uid('meet'), weekday: 3, startSection: 1, endSection: 2 },
-        { id: uid('meet'), weekday: 5, startSection: 3, endSection: 4 },
+        meet(1, 1, 2),
+        meet(3, 1, 2),
+        meet(5, 3, 4),
       ],
       keyTopics: ['15.1 二重积分', '15.2 三重积分', '16.1 曲线积分'],
       hidden: false,
@@ -81,8 +96,8 @@ export function buildSeedState(): AppState {
       name: '英语科技文献阅读',
       term: '2026春',
       meetings: [
-        { id: uid('meet'), weekday: 2, startSection: 1, endSection: 2 },
-        { id: uid('meet'), weekday: 5, startSection: 1, endSection: 2 },
+        meet(2, 1, 2),
+        meet(5, 1, 2),
       ],
       keyTopics: [],
       hidden: false,
@@ -93,10 +108,13 @@ export function buildSeedState(): AppState {
 
   const base: AppState = {
     version: STATE_VERSION,
+    userName: DEFAULT_USER_NAME,
     subjects,
     chapters,
     courses,
     availability,
+    courseTermStartDate: DEFAULT_COURSE_TERM_START_DATE,
+    courseWeekCount: DEFAULT_COURSE_WEEK_COUNT,
     defaultDailyHours: DEFAULT_DAILY_HOURS,
     tasks: [],
     reviews: [],
@@ -108,10 +126,13 @@ export function buildSeedState(): AppState {
 export function emptyState(): AppState {
   return {
     version: STATE_VERSION,
+    userName: DEFAULT_USER_NAME,
     subjects: [],
     chapters: [],
     courses: [],
     availability: [],
+    courseTermStartDate: DEFAULT_COURSE_TERM_START_DATE,
+    courseWeekCount: DEFAULT_COURSE_WEEK_COUNT,
     defaultDailyHours: DEFAULT_DAILY_HOURS,
     tasks: [],
     reviews: [],

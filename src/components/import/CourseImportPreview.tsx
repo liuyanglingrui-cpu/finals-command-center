@@ -7,6 +7,7 @@ import type { ParsedCourse } from '@/lib/courseImportParser';
 import { COURSE_WEEKDAY_LABEL, findCourseConflicts } from '@/lib/courseImportParser';
 import { todayStr } from '@/lib/date';
 import type { Course, CourseMeeting } from '@/lib/types';
+import { formatCourseWeeks } from '@/lib/courseWeeks';
 import { cn } from '@/lib/cn';
 import { uid } from '@/lib/id';
 import { Card } from '../ui/Card';
@@ -27,7 +28,7 @@ interface DraftCourse extends ParsedCourse {
 function meetingsText(meetings: ParsedCourse['meetings']): string {
   if (meetings.length === 0) return '暂无上课节次';
   return meetings
-    .map((m) => `${COURSE_WEEKDAY_LABEL[m.weekday]} ${m.startSection}-${m.endSection}节`)
+    .map((m) => `${formatCourseWeeks(m.weeks)} · ${COURSE_WEEKDAY_LABEL[m.weekday]} ${m.startSection}-${m.endSection}节`)
     .join(' · ');
 }
 
@@ -36,7 +37,7 @@ function normalizeName(name: string): string {
 }
 
 function toCourseMeetings(meetings: ParsedCourse['meetings']): CourseMeeting[] {
-  return meetings.map((m) => ({ ...m, id: uid('meet') }));
+  return meetings.map((m) => ({ ...m, id: uid('meet'), weeks: [...m.weeks] }));
 }
 
 export function CourseImportPreview({
@@ -152,7 +153,7 @@ export function CourseImportPreview({
           <TriangleAlert size={14} className="mt-0.5 shrink-0" />
           <span>
             检测到 {conflicts.length} 处课程冲突，例如{' '}
-            {COURSE_WEEKDAY_LABEL[conflicts[0].weekday]} {conflicts[0].startSection}-
+            {formatCourseWeeks(conflicts[0].weeks)} {COURSE_WEEKDAY_LABEL[conflicts[0].weekday]} {conflicts[0].startSection}-
             {conflicts[0].endSection}节：{conflicts[0].courseNames.join(' / ')}。
           </span>
         </div>
