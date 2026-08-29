@@ -1,12 +1,12 @@
 {
-  "name": "Finals Command Center",
-  "short_name": "Finals",
-  "description": "A mobile-first command center for planning finals review.",
+  "name": "学习作战室",
+  "short_name": "学习作战室",
+  "description": "把课程知识点列出来，一个个清掉。",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#0f172a",
-  "theme_color": "#0f172a",
+  "background_color": "#080808",
+  "theme_color": "#080808",
   "icons": [
     {
       "src": "/app-icon.svg",

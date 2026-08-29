@@ -33,11 +33,11 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/80 sm:items-center sm:p-4"
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-border bg-card p-5 shadow-2xl sm:rounded-2xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto border border-border bg-card p-5 sm:rounded-[3px]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
@@ -45,7 +45,7 @@ export function Modal({
           <button
             onClick={onClose}
             aria-label="关闭"
-            className="rounded-md p-1 text-muted transition-colors hover:bg-white/5 hover:text-text"
+            className="grid h-11 w-11 place-items-center text-muted hover:text-text"
           >
             <X size={18} />
           </button>

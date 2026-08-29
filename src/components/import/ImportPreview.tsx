@@ -1,33 +1,29 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Star, Trash2, TriangleAlert } from 'lucide-react';
+import { Plus, Star, Trash2 } from 'lucide-react';
 import { useStore, type ImportItem } from '@/lib/store';
 import type { ParsedSubject } from '@/lib/importParser';
-import type { ChapterKind, Level } from '@/lib/types';
-import { KIND_LABEL, LEVELS, LEVEL_LABEL } from '@/lib/constants';
-import { cn } from '@/lib/cn';
 import { uid } from '@/lib/id';
+import { cn } from '@/lib/cn';
 import { Card } from '../ui/Card';
 import { Button } from '../ui/Button';
-import { Input, Select } from '../ui/form';
+import { Input } from '../ui/form';
 
-interface DraftChapter {
+interface DraftPoint {
   key: string;
   title: string;
-  estimatedHours: number;
-  difficulty: Level;
   isImportant: boolean;
-  kind: ChapterKind;
 }
+
 interface DraftSubject {
   key: string;
   name: string;
-  examDate: string; // '' = 缺失
+  examDate: string;
   examTime: string;
-  existingId: string | null; // 同名已有科目 id
-  mergeIntoId: string | null; // null = 新建；非空 = 合并到该 id
-  chapters: DraftChapter[];
+  existingId: string | null;
+  mergeIntoId: string | null;
+  chapters: DraftPoint[];
 }
 
 export function ImportPreview({
@@ -40,266 +36,150 @@ export function ImportPreview({
   onImported: () => void;
 }) {
   const { state, importSubjects } = useStore();
-
   const [draft, setDraft] = useState<DraftSubject[]>(() =>
-    parsed.map((s) => {
-      const existing = state.subjects.find((x) => x.name.trim() === s.name.trim());
+    parsed.map((subject) => {
+      const existing = state.subjects.find(
+        (item) => item.name.trim().toLowerCase() === subject.name.trim().toLowerCase(),
+      );
       return {
-        key: uid('d'),
-        name: s.name,
-        examDate: s.examDate ?? '',
-        examTime: s.examTime,
+        key: uid('draft'),
+        name: subject.name,
+        examDate: subject.examDate ?? '',
+        examTime: subject.examTime,
         existingId: existing?.id ?? null,
-        mergeIntoId: existing?.id ?? null, // 默认合并
-        chapters: s.chapters.map((c) => ({ key: uid('dc'), ...c })),
+        mergeIntoId: existing?.id ?? null,
+        chapters: subject.chapters.map((point) => ({ ...point, key: uid('point-draft') })),
       };
     }),
   );
 
-  function patchSubject(i: number, patch: Partial<DraftSubject>) {
-    setDraft((d) => d.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
-  }
-  function removeSubject(i: number) {
-    setDraft((d) => d.filter((_, idx) => idx !== i));
-  }
-  function patchChapter(i: number, j: number, patch: Partial<DraftChapter>) {
-    setDraft((d) =>
-      d.map((s, idx) =>
-        idx === i ? { ...s, chapters: s.chapters.map((c, k) => (k === j ? { ...c, ...patch } : c)) } : s,
-      ),
-    );
-  }
-  function removeChapter(i: number, j: number) {
-    setDraft((d) =>
-      d.map((s, idx) => (idx === i ? { ...s, chapters: s.chapters.filter((_, k) => k !== j) } : s)),
-    );
-  }
-  function addChapter(i: number) {
-    setDraft((d) =>
-      d.map((s, idx) =>
-        idx === i
+  const patchSubject = (index: number, patch: Partial<DraftSubject>) =>
+    setDraft((items) => items.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
+  const patchPoint = (subjectIndex: number, pointIndex: number, patch: Partial<DraftPoint>) =>
+    setDraft((items) =>
+      items.map((item, itemIndex) =>
+        itemIndex === subjectIndex
           ? {
-              ...s,
-              chapters: [
-                ...s.chapters,
-                { key: uid('dc'), title: '', estimatedHours: 2, difficulty: 'mid', isImportant: false, kind: 'study' },
-              ],
+              ...item,
+              chapters: item.chapters.map((point, index) =>
+                index === pointIndex ? { ...point, ...patch } : point,
+              ),
             }
-          : s,
+          : item,
       ),
     );
-  }
 
-  const totalChapters = draft.reduce((n, s) => n + s.chapters.length, 0);
-  const missingDate = draft.some((s) => !s.examDate);
-  const canImport =
-    draft.length > 0 && draft.every((s) => s.name.trim() && s.examDate) && totalChapters > 0;
+  const validPoints = draft.reduce(
+    (total, subject) => total + subject.chapters.filter((point) => point.title.trim()).length,
+    0,
+  );
+  const canImport = draft.length > 0 && draft.every((subject) => subject.name.trim()) && validPoints > 0;
 
   function confirmImport() {
     if (!canImport) return;
-    const items: ImportItem[] = draft.map((s) => ({
-      mergeIntoId: s.mergeIntoId,
+    const items: ImportItem[] = draft.map((subject) => ({
+      mergeIntoId: subject.mergeIntoId,
       subject: {
-        name: s.name.trim(),
-        examDate: s.examDate,
-        examTime: s.examTime || '09:00',
-        difficulty: 'mid',
-        priority: 'mid',
+        name: subject.name.trim(),
+        examDate: subject.examDate,
+        examTime: subject.examDate ? subject.examTime || '09:00' : '',
         notes: '',
       },
-      chapters: s.chapters
-        .filter((c) => c.title.trim())
-        .map((c) => ({
-          title: c.title.trim(),
-          estimatedHours: c.estimatedHours > 0 ? c.estimatedHours : 1,
-          difficulty: c.difficulty,
-          isImportant: c.isImportant,
-          kind: c.kind,
-        })),
+      chapters: subject.chapters
+        .filter((point) => point.title.trim())
+        .map((point) => ({ title: point.title.trim(), isImportant: point.isImportant })),
     }));
     importSubjects(items);
     onImported();
   }
 
   if (draft.length === 0) {
-    return (
-      <Card>
-        <p className="text-sm text-muted">没有可导入的内容，请返回重新解析。</p>
-        <div className="mt-4">
-          <Button variant="secondary" onClick={onCancel}>
-            返回
-          </Button>
-        </div>
-      </Card>
-    );
+    return <Card><p className="text-sm text-muted">没有识别到可以导入的内容。</p><Button className="mt-4" variant="secondary" onClick={onCancel}>返回</Button></Card>;
   }
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-2">
-        <p className="text-sm text-muted">
-          解析出 <span className="text-text">{draft.length}</span> 门科目、
-          <span className="text-text">{totalChapters}</span> 个章节，可在下方修改后导入。
-        </p>
-      </div>
-
-      {missingDate ? (
-        <div className="mb-4 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
-          <TriangleAlert size={14} className="mt-0.5 shrink-0" />
-          <span>有科目缺少考试日期，请补充后才能导入。</span>
-        </div>
-      ) : null}
-
+      <p className="mb-4 text-sm text-muted">识别到 {draft.length} 门课程、{validPoints} 个知识点。考试日期可以留空。</p>
       <div className="space-y-4">
-        {draft.map((s, i) => (
-          <Card key={s.key} className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Input
-                value={s.name}
-                onChange={(e) => patchSubject(i, { name: e.target.value })}
-                placeholder="科目名称"
-                className="flex-1 font-medium"
-              />
-              <button
-                onClick={() => removeSubject(i)}
-                aria-label="删除科目"
-                className="rounded-md p-2 text-muted transition-colors hover:bg-danger/15 hover:text-danger"
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            {s.existingId ? (
-              <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card2/50 px-3 py-2 text-xs">
-                <span className="text-muted">已存在同名科目：</span>
+        {draft.map((subject, subjectIndex) => (
+          <Card key={subject.key} className="p-0">
+            <div className="space-y-3 border-b border-border p-4">
+              <div className="flex items-center gap-2">
+                <Input value={subject.name} onChange={(event) => patchSubject(subjectIndex, { name: event.target.value })} className="flex-1 font-semibold" />
                 <button
-                  onClick={() => patchSubject(i, { mergeIntoId: s.existingId })}
-                  className={cn(
-                    'rounded-md px-2 py-1 transition-colors',
-                    s.mergeIntoId ? 'bg-primary/15 text-primary' : 'text-muted hover:text-text',
-                  )}
+                  onClick={() => setDraft((items) => items.filter((_, index) => index !== subjectIndex))}
+                  aria-label="移除课程"
+                  className="grid h-11 w-10 place-items-center text-muted hover:text-danger"
                 >
-                  合并到已有
-                </button>
-                <button
-                  onClick={() => patchSubject(i, { mergeIntoId: null })}
-                  className={cn(
-                    'rounded-md px-2 py-1 transition-colors',
-                    s.mergeIntoId === null ? 'bg-primary/15 text-primary' : 'text-muted hover:text-text',
-                  )}
-                >
-                  新建科目
+                  <Trash2 size={16} />
                 </button>
               </div>
-            ) : null}
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <span className="mb-1 block text-xs text-muted">考试日期</span>
-                <Input
-                  type="date"
-                  value={s.examDate}
-                  onChange={(e) => patchSubject(i, { examDate: e.target.value })}
-                  className={s.examDate ? '' : 'border-warning/60'}
-                />
-              </div>
-              <div>
-                <span className="mb-1 block text-xs text-muted">考试时间</span>
-                <Input
-                  type="time"
-                  value={s.examTime}
-                  onChange={(e) => patchSubject(i, { examTime: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {s.chapters.map((c, j) => (
-                <div key={c.key} className="rounded-lg border border-border bg-card2/40 p-2.5">
-                  <div className="flex items-center gap-2">
-                    <Input
-                      value={c.title}
-                      onChange={(e) => patchChapter(i, j, { title: e.target.value })}
-                      placeholder="章节名称"
-                      className="flex-1"
-                    />
-                    <button
-                      onClick={() => removeChapter(i, j)}
-                      aria-label="删除章节"
-                      className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger/15 hover:text-danger"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                  <div className="mt-2 flex flex-wrap items-center gap-2">
-                    <div className="relative w-20">
-                      <Input
-                        type="number"
-                        min="0.5"
-                        step="0.5"
-                        value={String(c.estimatedHours)}
-                        onChange={(e) => patchChapter(i, j, { estimatedHours: Number(e.target.value) })}
-                        className="pr-6"
-                      />
-                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted">
-                        h
-                      </span>
-                    </div>
-                    <div className="w-24">
-                      <Select
-                        value={c.difficulty}
-                        onChange={(e) => patchChapter(i, j, { difficulty: e.target.value as Level })}
-                      >
-                        {LEVELS.map((l) => (
-                          <option key={l} value={l}>
-                            难度 {LEVEL_LABEL[l]}
-                          </option>
-                        ))}
-                      </Select>
-                    </div>
-                    <div className="w-36">
-                      <Select
-                        value={c.kind}
-                        onChange={(e) => patchChapter(i, j, { kind: e.target.value as ChapterKind })}
-                      >
-                        <option value="study">{KIND_LABEL.study}</option>
-                        <option value="review">{KIND_LABEL.review}</option>
-                      </Select>
-                    </div>
-                    <button
-                      onClick={() => patchChapter(i, j, { isImportant: !c.isImportant })}
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs transition-colors',
-                        c.isImportant
-                          ? 'border-warning/40 bg-warning/10 text-warning'
-                          : 'border-border text-muted hover:text-text',
-                      )}
-                    >
-                      <Star size={13} className={c.isImportant ? 'fill-warning' : ''} />
-                      重点
-                    </button>
-                  </div>
+              {subject.existingId ? (
+                <div className="flex gap-2 text-xs">
+                  <button
+                    onClick={() => patchSubject(subjectIndex, { mergeIntoId: subject.existingId })}
+                    className={cn('min-h-11 border px-3', subject.mergeIntoId ? 'border-white bg-white text-black' : 'border-border text-muted')}
+                  >
+                    合并已有课程
+                  </button>
+                  <button
+                    onClick={() => patchSubject(subjectIndex, { mergeIntoId: null })}
+                    className={cn('min-h-11 border px-3', subject.mergeIntoId === null ? 'border-white bg-white text-black' : 'border-border text-muted')}
+                  >
+                    新建课程
+                  </button>
                 </div>
-              ))}
-
+              ) : null}
+              {!subject.mergeIntoId ? (
+                <div className="grid grid-cols-2 gap-2">
+                  <div><span className="mb-1 block text-xs text-muted">考试日期（可选）</span><Input type="date" value={subject.examDate} onChange={(event) => patchSubject(subjectIndex, { examDate: event.target.value })} /></div>
+                  <div><span className="mb-1 block text-xs text-muted">考试时间</span><Input type="time" disabled={!subject.examDate} value={subject.examTime} onChange={(event) => patchSubject(subjectIndex, { examTime: event.target.value })} /></div>
+                </div>
+              ) : null}
+            </div>
+            <div className="p-4">
+              <div className="space-y-2">
+                {subject.chapters.map((point, pointIndex) => (
+                  <div key={point.key} className="flex items-center gap-2">
+                    <Input value={point.title} onChange={(event) => patchPoint(subjectIndex, pointIndex, { title: event.target.value })} className="flex-1" />
+                    <button
+                      onClick={() => patchPoint(subjectIndex, pointIndex, { isImportant: !point.isImportant })}
+                      aria-label="切换重点"
+                      className={cn('grid h-11 w-10 place-items-center border', point.isImportant ? 'border-white bg-white text-black' : 'border-border text-muted')}
+                    >
+                      <Star size={15} fill={point.isImportant ? 'currentColor' : 'none'} />
+                    </button>
+                    <button
+                      onClick={() =>
+                        patchSubject(subjectIndex, {
+                          chapters: subject.chapters.filter((_, index) => index !== pointIndex),
+                        })
+                      }
+                      aria-label="移除知识点"
+                      className="grid h-11 w-10 place-items-center text-muted hover:text-danger"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
               <button
-                onClick={() => addChapter(i)}
-                className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
+                onClick={() =>
+                  patchSubject(subjectIndex, {
+                    chapters: [...subject.chapters, { key: uid('point-draft'), title: '', isImportant: false }],
+                  })
+                }
+                className="mt-3 inline-flex min-h-11 items-center gap-1 text-xs text-text"
               >
-                <Plus size={13} /> 添加章节
+                <Plus size={14} /> 添加知识点
               </button>
             </div>
           </Card>
         ))}
       </div>
-
-      <div className="mt-5 flex items-center justify-end gap-2">
-        <Button variant="secondary" onClick={onCancel}>
-          返回修改文本
-        </Button>
-        <Button onClick={confirmImport} disabled={!canImport}>
-          确认导入
-        </Button>
+      <div className="mt-5 flex justify-end gap-2">
+        <Button variant="secondary" onClick={onCancel}>返回文本</Button>
+        <Button onClick={confirmImport} disabled={!canImport}>确认导入</Button>
       </div>
     </div>
   );

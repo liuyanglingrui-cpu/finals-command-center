@@ -4,15 +4,15 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type Size = 'sm' | 'md';
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-primary/25 hover:brightness-110',
-  secondary: 'border border-white/10 bg-card2/80 text-text hover:bg-white/5',
-  ghost: 'text-muted hover:bg-white/5 hover:text-text',
-  danger: 'bg-danger/90 text-white hover:bg-danger',
+  primary: 'border border-white bg-white text-black hover:bg-accent',
+  secondary: 'border border-border bg-card2 text-text hover:border-muted',
+  ghost: 'text-muted hover:text-text',
+  danger: 'border border-danger bg-transparent text-danger hover:bg-danger hover:text-black',
 };
 
 const SIZES: Record<Size, string> = {
-  sm: 'h-8 px-3 text-xs',
-  md: 'h-10 px-4 text-sm',
+  sm: 'h-11 px-3 text-xs',
+  md: 'h-11 px-4 text-sm',
 };
 
 export function Button({
@@ -24,7 +24,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:pointer-events-none disabled:opacity-50',
+        'inline-flex items-center justify-center gap-1.5 rounded-[3px] font-medium transition-colors disabled:pointer-events-none disabled:opacity-40',
         VARIANTS[variant],
         SIZES[size],
         className,

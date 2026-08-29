@@ -1,10 +1,9 @@
 import Link from 'next/link';
-import { BookOpen, ChevronRight, Pencil, Trash2 } from 'lucide-react';
+import { CalendarClock, ChevronRight, Pencil, Trash2 } from 'lucide-react';
 import { Card } from '../ui/Card';
 import { Countdown } from '../ui/Countdown';
 import { ProgressBar } from '../ui/ProgressBar';
-import { LevelBadge } from '../Badges';
-import { formatCN, formatHours } from '@/lib/date';
+import { formatCN } from '@/lib/date';
 import type { Subject } from '@/lib/types';
 import type { SubjectProgress } from '@/lib/selectors';
 
@@ -19,60 +18,39 @@ export function SubjectCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const progressPct = Math.round(progress.pct * 100);
   return (
-    <Card className="flex flex-col gap-3 bg-card/90">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-1 gap-3">
-          <div className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary/20 text-primary">
-            <BookOpen size={23} />
+    <Card className="p-0">
+      <div className="flex items-start gap-3 border-b border-border p-4">
+        <Link href={`/subjects/${subject.id}`} className="min-w-0 flex-1">
+          <h3 className="truncate text-base font-semibold text-text">{subject.name}</h3>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted">
+            <CalendarClock size={13} />
+            {subject.examDate ? (
+              <>
+                <span>{formatCN(subject.examDate)} {subject.examTime}</span>
+                <Countdown date={subject.examDate} />
+              </>
+            ) : (
+              <span>考试时间未公布</span>
+            )}
           </div>
-          <Link href={`/subjects/${subject.id}`} className="min-w-0 flex-1">
-            <h3 className="truncate font-semibold text-text hover:text-primary">{subject.name}</h3>
-            <div className="mt-1 text-xs text-muted">
-              {formatCN(subject.examDate)} {subject.examTime} 考试
-            </div>
-          </Link>
-        </div>
-        <div className="flex shrink-0 gap-1">
-          <button
-            onClick={onEdit}
-            aria-label="编辑科目"
-            className="rounded-md p-1.5 text-muted transition-colors hover:bg-white/5 hover:text-text"
-          >
-            <Pencil size={15} />
-          </button>
-          <button
-            onClick={onDelete}
-            aria-label="删除科目"
-            className="rounded-md p-1.5 text-muted transition-colors hover:bg-danger/15 hover:text-danger"
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
+        </Link>
+        <button onClick={onEdit} aria-label="编辑课程" className="grid h-11 w-11 place-items-center text-muted hover:text-text">
+          <Pencil size={15} />
+        </button>
+        <button onClick={onDelete} aria-label="删除课程" className="grid h-11 w-11 place-items-center text-muted hover:text-danger">
+          <Trash2 size={15} />
+        </button>
       </div>
-
-      <div className="flex flex-wrap items-center gap-1.5">
-        <Countdown date={subject.examDate} />
-        <LevelBadge level={subject.difficulty} prefix="难度 " />
-        <LevelBadge level={subject.priority} prefix="优先 " />
-      </div>
-
-      <div>
-        <div className="mb-1 flex items-center justify-between text-xs text-muted">
-          <span>
-            {progress.doneChapters}/{progress.totalChapters} 章 · 剩 {formatHours(progress.remainingHours)}
-          </span>
-          <span>{progressPct}%</span>
+      <Link href={`/subjects/${subject.id}`} className="block p-4">
+        <div className="mb-2 flex items-center justify-between text-xs text-muted">
+          <span>{progress.doneChapters}/{progress.totalChapters} 已清理</span>
+          <span>{Math.round(progress.pct * 100)}%</span>
         </div>
-        <ProgressBar value={progress.pct} color="bg-gradient-to-r from-primary to-accent" />
-      </div>
-
-      <Link
-        href={`/subjects/${subject.id}`}
-        className="flex items-center justify-end gap-0.5 text-xs text-primary hover:underline"
-      >
-        查看详情 <ChevronRight size={14} />
+        <ProgressBar value={progress.pct} />
+        <div className="mt-3 flex items-center justify-end gap-1 text-xs text-text">
+          打开清单 <ChevronRight size={14} />
+        </div>
       </Link>
     </Card>
   );

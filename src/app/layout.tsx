@@ -5,12 +5,12 @@ import { AppShell } from "@/components/AppShell";
 import { PWARegister } from "@/components/PWARegister";
 
 export const metadata: Metadata = {
-  title: "期末作战室 · Finals Command Center",
-  description: "根据考试时间、章节难度与每日可用时间，自动生成期末复习计划",
+  title: "学习作战室",
+  description: "把课程知识点列出来，一个个清掉。",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#080808",
   width: "device-width",
   initialScale: 1,
 };
@@ -26,7 +26,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.webmanifest" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-title" content="Finals Command Center" />
+        <meta name="apple-mobile-web-app-title" content="学习作战室" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body className="min-h-full antialiased">

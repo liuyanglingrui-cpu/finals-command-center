@@ -19,15 +19,18 @@ export default function SubjectsPage() {
 
   if (!hydrated) return <Loading />;
 
-  const subjects = [...state.subjects].sort(
-    (a, b) => a.examDate.localeCompare(b.examDate) || a.examTime.localeCompare(b.examTime),
-  );
+  const subjects = [...state.subjects].sort((a, b) => {
+    if (a.examDate && b.examDate) return a.examDate.localeCompare(b.examDate);
+    if (a.examDate) return -1;
+    if (b.examDate) return 1;
+    return a.name.localeCompare(b.name, 'zh-CN');
+  });
 
   return (
     <div>
       <PageHeader
-        title="我的科目"
-        subtitle="管理考试科目与章节"
+        title="我的课程"
+        subtitle="把知识点列出来，一个个清掉"
         action={
           <Button onClick={() => setModal('new')}>
             <Plus size={16} /> 添加科目
@@ -38,7 +41,7 @@ export default function SubjectsPage() {
       {subjects.length === 0 ? (
         <EmptyState
           title="还没有科目"
-          hint="添加第一门考试科目开始规划"
+          hint="先建课程，考试日期可以等公布后再补"
           action={
             <Button onClick={() => setModal('new')}>
               <Plus size={16} /> 添加科目

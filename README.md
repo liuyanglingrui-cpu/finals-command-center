@@ -1,72 +1,26 @@
-# Finals Command Center
+# 学习作战室
 
-A mobile-first study planner for finals season. Add subjects, exam dates, chapters,
-available study hours, and review logs, then let the app generate a daily review
-schedule in your browser.
+一个手机优先的课程知识点清单。先把整学期要学的内容列出来，再一个个清掉；考试日期公布后随时补录并查看倒计时。
 
-Live app: https://finals-command-center.netlify.app
+## 功能
 
-## Features
+- 课程、考试日期与知识点管理
+- 知识点完成勾选、重点标记和课程进度
+- 支持多门课程批量格式导入
+- 兼容原有包含小时数的期末复习文本
+- 数据保存在当前浏览器的 localStorage
+- 支持 PWA 和移动端主屏使用
 
-- Subject and chapter management
-- Exam countdowns and progress tracking
-- Automatic schedule generation based on exam dates, difficulty, priority, and daily availability
-- Smart text import for exam plans and chapter lists
-- Daily review logs
-- Local-first data storage with `localStorage`
-- PWA support for adding the app to a phone home screen
+## 开发
 
-## Tech Stack
+运行 npm install 安装依赖，使用 npm run dev 启动开发服务器。
 
-- Next.js
-- React
-- TypeScript
-- Tailwind CSS
-- Vitest
-- Netlify
+检查命令：npm test、npm run lint、npm run build。
 
-## Getting Started
+## 数据说明
 
-Install dependencies:
+应用不会上传课程和学习记录。清除浏览器网站数据可能导致本地记录丢失。
 
-```bash
-npm install
-```
+## 部署
 
-Run the development server:
-
-```bash
-npm run dev
-```
-
-Open http://localhost:3000 in your browser.
-
-## Scripts
-
-```bash
-npm run dev
-npm test
-npm run lint
-npm run build
-```
-
-## Data And Privacy
-
-The app stores study data in the current browser's `localStorage`. It does not
-upload subject, chapter, schedule, or review data to a server.
-
-Clearing browser data may delete saved study data.
-
-## Deployment
-
-The included `netlify.toml` config deploys the Next.js app to Netlify:
-
-```toml
-[build]
-  command = "npm run build"
-  publish = ".next"
-```
-
-## License
-
-MIT
+项目使用 Next.js，可直接连接 GitHub 仓库部署到 Vercel。

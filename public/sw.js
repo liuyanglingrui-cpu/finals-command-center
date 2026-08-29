@@ -1,5 +1,5 @@
-const CACHE_NAME = 'finals-command-center-v1';
-const APP_SHELL = ['/', '/import', '/subjects', '/schedule', '/review', '/settings', '/manifest.webmanifest', '/app-icon.svg', '/favicon.ico'];
+const CACHE_NAME = 'study-command-center-v2';
+const APP_SHELL = ['/', '/import', '/subjects', '/settings', '/manifest.webmanifest', '/app-icon.svg', '/favicon.ico'];
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

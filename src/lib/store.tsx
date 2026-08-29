@@ -1,61 +1,33 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { AppState, Chapter, Course, ReviewLog, Subject } from './types';
+import type { AppState, KnowledgePoint, Subject } from './types';
 import { buildSeedState, emptyState } from './seed';
-import { generateSchedule } from './schedule';
 import { clearState, loadState, saveState } from './storage';
-import { round1 } from './selectors';
 import { uid } from './id';
 
-/** 数据变更后基于最新 state 重新排程（保留已完成任务） */
-function withSchedule(s: AppState): AppState {
-  return { ...s, tasks: generateSchedule(s) };
-}
-
 type NewSubject = Omit<Subject, 'id'>;
-type NewChapter = Omit<Chapter, 'id' | 'completedHours'>;
-type NewReview = Omit<ReviewLog, 'id'>;
-type NewCourse = Omit<Course, 'id'>;
+type NewPoint = Omit<KnowledgePoint, 'id' | 'completed'>;
+type ImportPoint = Omit<KnowledgePoint, 'id' | 'subjectId' | 'completed'>;
 
-/** 智能导入的一项：合并到已有科目（mergeIntoId）或新建科目（subject），并追加章节 */
-type ImportChapter = Omit<Chapter, 'id' | 'completedHours' | 'subjectId'>;
 export interface ImportItem {
   mergeIntoId: string | null;
   subject: NewSubject;
-  chapters: ImportChapter[];
+  chapters: ImportPoint[];
 }
 
 interface StoreValue {
   state: AppState;
   hydrated: boolean;
-
   addSubject: (data: NewSubject) => string;
   updateSubject: (id: string, patch: Partial<NewSubject>) => void;
   deleteSubject: (id: string) => void;
-
-  addChapter: (data: NewChapter) => string;
-  updateChapter: (id: string, patch: Partial<NewChapter>) => void;
+  addChapter: (data: NewPoint) => string;
+  updateChapter: (id: string, patch: Partial<NewPoint>) => void;
   deleteChapter: (id: string) => void;
-
-  setAvailability: (date: string, hours: number) => void;
-  clearAvailability: (date: string) => void;
-  setDefaultHours: (hours: number) => void;
-  setUserName: (name: string) => void;
-  setCourseCalendar: (startDate: string, weekCount: number) => void;
-
-  regenerate: () => void;
-  toggleTask: (taskId: string) => void;
-
-  upsertReview: (data: NewReview) => void;
-
+  toggleChapter: (id: string) => void;
   importSubjects: (items: ImportItem[]) => void;
-  addCourse: (data: NewCourse) => string;
-  updateCourse: (id: string, patch: Partial<NewCourse>) => void;
-  deleteCourse: (id: string) => void;
-  importCourses: (courses: NewCourse[]) => void;
-  toggleCourseHidden: (id: string) => void;
-
+  setUserName: (name: string) => void;
   resetToSample: () => void;
   clearAll: () => void;
 }
@@ -63,13 +35,12 @@ interface StoreValue {
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  // 初始用空 state，保证 SSR 与首次客户端渲染一致；mount 后再载入/注入
   const [state, setState] = useState<AppState>(() => emptyState());
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     const loaded = loadState();
-    // The first render must match SSR; localStorage is only available after mount.
+    // The first client render must match SSR before localStorage is read.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setState(loaded ?? buildSeedState());
     setHydrated(true);
@@ -81,181 +52,73 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addSubject = useCallback((data: NewSubject) => {
     const id = uid('sub');
-    setState((prev) => withSchedule({ ...prev, subjects: [...prev.subjects, { ...data, id }] }));
+    setState((prev) => ({ ...prev, subjects: [...prev.subjects, { ...data, id }] }));
     return id;
   }, []);
 
   const updateSubject = useCallback((id: string, patch: Partial<NewSubject>) => {
-    setState((prev) =>
-      withSchedule({
-        ...prev,
-        subjects: prev.subjects.map((s) => (s.id === id ? { ...s, ...patch } : s)),
-      }),
-    );
-  }, []);
-
-  const deleteSubject = useCallback((id: string) => {
-    setState((prev) =>
-      withSchedule({
-        ...prev,
-        subjects: prev.subjects.filter((s) => s.id !== id),
-        chapters: prev.chapters.filter((c) => c.subjectId !== id),
-        tasks: prev.tasks.filter((t) => t.subjectId !== id),
-      }),
-    );
-  }, []);
-
-  const addChapter = useCallback((data: NewChapter) => {
-    const id = uid('ch');
-    setState((prev) =>
-      withSchedule({ ...prev, chapters: [...prev.chapters, { ...data, id, completedHours: 0 }] }),
-    );
-    return id;
-  }, []);
-
-  const updateChapter = useCallback((id: string, patch: Partial<NewChapter>) => {
-    setState((prev) =>
-      withSchedule({
-        ...prev,
-        chapters: prev.chapters.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-      }),
-    );
-  }, []);
-
-  const deleteChapter = useCallback((id: string) => {
-    setState((prev) =>
-      withSchedule({
-        ...prev,
-        chapters: prev.chapters.filter((c) => c.id !== id),
-        tasks: prev.tasks.filter((t) => t.chapterId !== id),
-      }),
-    );
-  }, []);
-
-  const setAvailability = useCallback((date: string, hours: number) => {
-    setState((prev) => {
-      const availability = [
-        ...prev.availability.filter((a) => a.date !== date),
-        { date, availableHours: hours },
-      ].sort((a, b) => a.date.localeCompare(b.date));
-      return withSchedule({ ...prev, availability });
-    });
-  }, []);
-
-  const clearAvailability = useCallback((date: string) => {
-    setState((prev) =>
-      withSchedule({ ...prev, availability: prev.availability.filter((a) => a.date !== date) }),
-    );
-  }, []);
-
-  const setDefaultHours = useCallback((hours: number) => {
-    setState((prev) => withSchedule({ ...prev, defaultDailyHours: hours }));
-  }, []);
-
-  const setUserName = useCallback((name: string) => {
-    setState((prev) => ({ ...prev, userName: name.trim() }));
-  }, []);
-
-  const setCourseCalendar = useCallback((startDate: string, weekCount: number) => {
     setState((prev) => ({
       ...prev,
-      courseTermStartDate: startDate || prev.courseTermStartDate,
-      courseWeekCount: Math.max(1, Math.floor(weekCount || prev.courseWeekCount)),
+      subjects: prev.subjects.map((subject) => (subject.id === id ? { ...subject, ...patch } : subject)),
     }));
   }, []);
 
-  const regenerate = useCallback(() => {
-    setState((prev) => withSchedule(prev));
+  const deleteSubject = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      subjects: prev.subjects.filter((subject) => subject.id !== id),
+      chapters: prev.chapters.filter((point) => point.subjectId !== id),
+    }));
   }, []);
 
-  // 勾选任务：仅更新完成状态与对应章节 completedHours，不重排（避免计划在脚下被打乱）
-  const toggleTask = useCallback((taskId: string) => {
-    setState((prev) => {
-      const task = prev.tasks.find((t) => t.id === taskId);
-      if (!task) return prev;
-      const nowCompleted = !task.completed;
-      const delta = nowCompleted ? task.hours : -task.hours;
-      return {
-        ...prev,
-        tasks: prev.tasks.map((t) => (t.id === taskId ? { ...t, completed: nowCompleted } : t)),
-        chapters: prev.chapters.map((c) =>
-          c.id === task.chapterId
-            ? { ...c, completedHours: Math.max(0, round1(c.completedHours + delta)) }
-            : c,
-        ),
-      };
-    });
+  const addChapter = useCallback((data: NewPoint) => {
+    const id = uid('point');
+    setState((prev) => ({ ...prev, chapters: [...prev.chapters, { ...data, id, completed: false }] }));
+    return id;
   }, []);
 
-  const upsertReview = useCallback((data: NewReview) => {
-    setState((prev) => {
-      const exists = prev.reviews.some((r) => r.date === data.date);
-      return {
-        ...prev,
-        reviews: exists
-          ? prev.reviews.map((r) => (r.date === data.date ? { ...r, ...data } : r))
-          : [...prev.reviews, { ...data, id: uid('rev') }],
-      };
-    });
+  const updateChapter = useCallback((id: string, patch: Partial<NewPoint>) => {
+    setState((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((point) => (point.id === id ? { ...point, ...patch } : point)),
+    }));
   }, []);
 
-  // 批量导入：按选择合并到已有科目或新建科目，结尾一次性重排
+  const deleteChapter = useCallback((id: string) => {
+    setState((prev) => ({ ...prev, chapters: prev.chapters.filter((point) => point.id !== id) }));
+  }, []);
+
+  const toggleChapter = useCallback((id: string) => {
+    setState((prev) => ({
+      ...prev,
+      chapters: prev.chapters.map((point) =>
+        point.id === id ? { ...point, completed: !point.completed } : point,
+      ),
+    }));
+  }, []);
+
   const importSubjects = useCallback((items: ImportItem[]) => {
     setState((prev) => {
       const subjects = [...prev.subjects];
       const chapters = [...prev.chapters];
       for (const item of items) {
-        let subjectId: string;
-        if (item.mergeIntoId) {
-          subjectId = item.mergeIntoId;
-        } else {
-          subjectId = uid('sub');
-          subjects.push({ ...item.subject, id: subjectId });
-        }
-        for (const ch of item.chapters) {
-          chapters.push({ ...ch, id: uid('ch'), subjectId, completedHours: 0 });
+        const subjectId = item.mergeIntoId ?? uid('sub');
+        if (!item.mergeIntoId) subjects.push({ ...item.subject, id: subjectId });
+        for (const chapter of item.chapters) {
+          const duplicate = chapters.some(
+            (existing) =>
+              existing.subjectId === subjectId &&
+              existing.title.trim().toLowerCase() === chapter.title.trim().toLowerCase(),
+          );
+          if (!duplicate) chapters.push({ ...chapter, id: uid('point'), subjectId, completed: false });
         }
       }
-      return withSchedule({ ...prev, subjects, chapters });
+      return { ...prev, subjects, chapters };
     });
   }, []);
 
-  const addCourse = useCallback((data: NewCourse) => {
-    const id = uid('course');
-    setState((prev) => ({ ...prev, courses: [...prev.courses, { ...data, id }] }));
-    return id;
-  }, []);
-
-  const updateCourse = useCallback((id: string, patch: Partial<NewCourse>) => {
-    setState((prev) => ({
-      ...prev,
-      courses: prev.courses.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-    }));
-  }, []);
-
-  const deleteCourse = useCallback((id: string) => {
-    setState((prev) => ({ ...prev, courses: prev.courses.filter((c) => c.id !== id) }));
-  }, []);
-
-  const importCourses = useCallback((courses: NewCourse[]) => {
-    setState((prev) => ({
-      ...prev,
-      courses: [
-        ...prev.courses,
-        ...courses.map((course) => ({
-          ...course,
-          id: uid('course'),
-          meetings: course.meetings.map((m) => ({ ...m, id: m.id || uid('meet'), weeks: [...m.weeks] })),
-        })),
-      ],
-    }));
-  }, []);
-
-  const toggleCourseHidden = useCallback((id: string) => {
-    setState((prev) => ({
-      ...prev,
-      courses: prev.courses.map((c) => (c.id === id ? { ...c, hidden: !c.hidden } : c)),
-    }));
+  const setUserName = useCallback((name: string) => {
+    setState((prev) => ({ ...prev, userName: name.trim() }));
   }, []);
 
   const resetToSample = useCallback(() => setState(buildSeedState()), []);
@@ -274,20 +137,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addChapter,
       updateChapter,
       deleteChapter,
-      setAvailability,
-      clearAvailability,
-      setDefaultHours,
-      setUserName,
-      setCourseCalendar,
-      regenerate,
-      toggleTask,
-      upsertReview,
+      toggleChapter,
       importSubjects,
-      addCourse,
-      updateCourse,
-      deleteCourse,
-      importCourses,
-      toggleCourseHidden,
+      setUserName,
       resetToSample,
       clearAll,
     }),
@@ -300,20 +152,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       addChapter,
       updateChapter,
       deleteChapter,
-      setAvailability,
-      clearAvailability,
-      setDefaultHours,
-      setUserName,
-      setCourseCalendar,
-      regenerate,
-      toggleTask,
-      upsertReview,
+      toggleChapter,
       importSubjects,
-      addCourse,
-      updateCourse,
-      deleteCourse,
-      importCourses,
-      toggleCourseHidden,
+      setUserName,
       resetToSample,
       clearAll,
     ],
@@ -323,7 +164,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useStore(): StoreValue {
-  const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error('useStore must be used within <StoreProvider>');
-  return ctx;
+  const context = useContext(StoreContext);
+  if (!context) throw new Error('useStore must be used within <StoreProvider>');
+  return context;
 }

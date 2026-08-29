@@ -20,13 +20,13 @@ export function Countdown({ date, className }: { date: string; className?: strin
     tone = 'bg-warning/15 text-warning border-warning/30';
   } else {
     text = `还剩 ${d} 天`;
-    tone = 'bg-primary/15 text-primary border-primary/30';
+    tone = 'bg-white/5 text-text border-border';
   }
 
   return (
     <span
       className={cn(
-        'inline-flex items-center whitespace-nowrap rounded-full border px-2 py-0.5 text-xs font-medium',
+        'inline-flex items-center whitespace-nowrap rounded-[2px] border px-2 py-0.5 text-xs font-medium',
         tone,
         className,
       )}
